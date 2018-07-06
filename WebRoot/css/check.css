@@ -1,0 +1,86 @@
+@CHARSET "UTF-8";
+body{
+	
+}
+
+.coinput{
+	text-align:center;
+	color:red;
+} 
+#table label{
+	padding-right:10px;
+}
+#table tbody {
+	display:block;
+	overflow-y:scroll;
+}
+#table tbody input{
+	padding-left:10px;
+	color:red;
+}
+
+#table thead, tbody tr {
+	display:table;
+	width:100%;
+	table-layout:fixed;
+}
+
+#table thead {
+width: calc( 100% - 1em )
+}
+#table thead th{ background:#009688;}
+.seluser{
+	width:30%;
+}
+/*account收银*/
+.pay{
+	
+	width:100%;
+	height:71px;
+	padding-left:15px;
+	border-bottom:1px solid #ccc;
+	
+}
+.pay div:nth-child(1){
+	width:40%;
+	line-height:35px;
+}
+#check_money{
+	cursor:pointer;
+	float:right;
+}
+#check_money img{
+	display:block;
+	width:35%;
+	float:right;
+	line-height:60px;
+}
+
+/*追加的内容*/
+#tby input{
+	width:20%;
+	padding-left:10px;
+}
+#tby label{
+	padding-left:10px;
+}
+#tby tr.trset td:nth-child(1){
+	width:15%;
+}
+#tby tr.trset td:nth-child(2){
+	width:15%;
+}
+#tby tr.trset td:nth-child(3){
+	width:60%;
+}
+#tby tr.trset td:nth-child(4){
+	width:10%;
+	cursor:pointer;
+}
+#tby tr.trset td:nth-child(3) #uId{
+	padding:3px;
+	border:1px solid #eee;
+}
+#tby .qutop{
+	border:0px;
+}

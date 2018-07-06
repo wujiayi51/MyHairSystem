@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="GBK"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:p="http://www.springframework.org/schema/p" 
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:util="http://www.springframework.org/schema/util"
+    xmlns:mvc="http://www.springframework.org/schema/mvc"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:task="http://www.springframework.org/schema/task"
+    xsi:schemaLocation="
+        http://www.springframework.org/schema/util
+        http://www.springframework.org/schema/util/spring-util-3.1.xsd
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd
+        http://www.springframework.org/schema/tx 
+        http://www.springframework.org/schema/tx/spring-tx-3.1.xsd
+        http://www.springframework.org/schema/aop 
+        http://www.springframework.org/schema/aop/spring-aop-3.1.xsd
+        http://www.springframework.org/schema/mvc
+http://www.springframework.org/schema/mvc/spring-mvc-3.1.xsd 
+		http://www.springframework.org/schema/task 
+		http://www.springframework.org/schema/task/spring-task-3.1.xsd " >
+	<!-- 配置SpringMVC控制器扫描器 -->
+	<!-- context:component-scan在配置扫描器base-package属性指定扫描的范围 -->
+	<context:component-scan base-package="com.xlfd" >
+		<!-- context:exclude-filter在配置扫描的去除规则，type属性指明了扫描类别：让分发器扫描注解是Controller的类；type属性指明扫描类别（注解），expression属性指明具体类的标记 -->
+		<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+	</context:component-scan>
+	
+	
+	
+	<!-- 下面内容不该ngMVC分发器做 -->
+	<!-- 配置DataSource的作用 配置数据库连接池-->
+	<!--类似声明一个对象org.logicalcobwebs.proxool.ProxoolDataSource DataSource = new org.logicalcobwebs.proxool.ProxoolDataSource（）  -->
+	<bean id="DataSource" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<!--  给driver赋值即value-->
+		<property  name="driver" value="com.mysql.jdbc.Driver"></property>
+			<!-- useUnicode=true用我自己的编码格式  &、 &amp;分隔符-->
+		<property  name="driverUrl" value="jdbc:mysql://127.0.0.1:3306/meifasys?useUnicode=true&amp;characterEncoding=UTF-8"></property>
+		<property name="user" value="root"></property>
+		<property name="password" value=""></property>
+		<!-- 下面的配置的作用配置连接池的上限和下限 -->
+		<property name="maximumConnectionCount" value="20"></property>
+		<property name="minimumConnectionCount" value="5"></property>
+	</bean>
+
+	<!-- 配置 sessionFactory的作用是生产Session的工厂-->
+	<bean id="sessionFactory" class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<!-- 把ref中的变量赋给name中 -->
+		<property name="dataSource" ref="DataSource"></property>
+		<property name="packagesToScan">
+			<list>
+				<value>com.xlfd.common.model</value>
+			</list>
+		</property>
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">org.hibernate.dialect.MySQLInnoDBDialect</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.format_sql">true</prop>
+				
+				<prop key="hibernate.query.substitution">true 1,false 0</prop>
+				<prop key="hibernate.default_batch_fetch_size">16</prop>
+				<prop key="hibernate.max_fetch_depth">2</prop>
+				<prop key="hibernate.generate_statistics">true</prop>
+				<prop key="hibernate.bytecode.use_reflection_optimizer">true</prop>
+			</props>
+		</property>
+	</bean>
+	
+	<!-- 配置Hibernate4声明式事务管理器 transactionManager来管理事务 -->
+	<bean id="transactionManager" class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory"/>
+	</bean>
+	<!--配置声明式事务的事务规则 (哪些方法要加事务？如何加事务？)-->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+		<!-- propagation="REQUIRED"? -->
+			<tx:method name="save*" propagation="REQUIRED"/>
+			<tx:method name="delete*" propagation="REQUIRED"/>
+			<tx:method name="update*" propagation="REQUIRED"/>
+			<!-- 实际开发中，将查询 到方法加只读事务 -->
+			<tx:method name="get*" propagation="REQUIRED" read-only="true"/>
+			<tx:method name="query*" propagation="REQUIRED" read-only="true"/>
+			<!-- 实际开发中,为避免某些方法遗漏了事务，会添加一个通用事务配置 -->
+			<tx:method name="*" propagation="REQUIRES_NEW" read-only="true"/>
+		</tx:attributes>
+	</tx:advice>
+	<!-- AOP监听器 ,设置自动代理，该配置的作用是自动开启AOP,以使事务生效-->	
+	<aop:aspectj-autoproxy expose-proxy="true"/>
+	<!-- 配置事务切点-->
+	<aop:config expose-proxy="true">          
+		<aop:pointcut expression="execution(* com.xlfd..service.impl.*.*(..))" id="txPointcut"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="txPointcut"/>
+	</aop:config>
+	   <!-- 添加调度的任务bean 配置对应的class-->  
+    <bean id="AddSalary" class="com.xlfd.usermanage.tark.AddSalary" />  
+  
+    <!--配置调度具体执行的方法-->  
+    <bean id="myPrintDetail"  
+        class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">  
+        <property name="targetObject" ref="AddSalary" />  
+        <property name="targetMethod" value="doAddUserSalary" />  
+        <property name="concurrent" value="false" />  
+    </bean>  
+
+    <!--配置调度执行的触发的时间-->  
+    <bean id="myPrintTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">  
+        <property name="jobDetail" ref="myPrintDetail" />  
+        <property name="cronExpression">  
+            <!-- 每天早上8点执行任务调度 -->  
+            <value>0 0 23 L * ?</value>  
+        </property>  
+    </bean>  
+  
+      
+  
+    <!-- quartz的调度工厂 调度工厂只能有一个，多个调度任务在list中添加 -->  
+    <bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">  
+        <property name="triggers">  
+            <list>  
+                 <!-- 所有的调度列表-->  
+                <ref local="myPrintTrigger" />  
+            </list>  
+        </property>  
+    </bean>  
+	
+	<!-- 配置定时器 -->
+	<task:annotation-driven/>
+</beans>
+
+
+
+
+
+
+
+
+
+
+
+
